@@ -1,0 +1,12 @@
+{
+    "email":"ilijagocic19@gmail.com",
+    "password":"ilijas19"
+}
+{
+    "email":"trainer1@gmail.com",
+    "password":"trainer"
+}
+{
+    "email":"ilijagocic1971@gmail.com",
+    "password":"user"
+}
