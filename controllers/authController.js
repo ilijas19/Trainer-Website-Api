@@ -8,6 +8,7 @@ const {
   verifyToken,
   createTokenUser,
   sendVerificationEmail,
+  sendResetPasswordEmail,
 } = require("../utils");
 const crypto = require("crypto");
 
@@ -84,7 +85,7 @@ const registerUser = async (req, res) => {
     throw new CustomError.BadRequestError("All credientials must be specified");
   }
   const verificationToken = crypto.randomBytes(40).toString("hex");
-  const origin = "http://localhost:5000";
+  const origin = process.env.ORIGIN || "http://localhost:5000";
   const user = await User.create({
     firstName,
     lastName,
@@ -166,10 +167,54 @@ const loginUser = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  res.send("forgotPassword");
+  const { email } = req.body;
+  if (!email) {
+    throw new CustomError.BadRequestError("Email must be provided");
+  }
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new CustomError.NotFoundError(`No user with specified email`);
+  }
+  const oneDay = 1000 * 60 * 60 * 24;
+  const passwordResetToken = crypto.randomBytes(40).toString("hex");
+  const origin = process.env.ORIGIN || "http://localhost:5000";
+
+  user.passwordResetToken = passwordResetToken;
+  user.passwordResetExpires = new Date(Date.now() + oneDay);
+
+  await sendResetPasswordEmail({
+    name: user.name,
+    email: user.email,
+    passwordResetToken,
+    origin,
+  });
+
+  await user.save({ validateModifiedOnly: true });
+  res.status(StatusCodes.OK).json({ msg: "Check your email" });
 };
+
 const resetPassword = async (req, res) => {
-  res.send("reset password");
+  const { token, email, newPassword } = req.body;
+  if (!token || !email) {
+    throw new CustomError.BadRequestError("All Credientials must be specified");
+  }
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new CustomError.NotFoundError("No user with specified email");
+  }
+
+  if (
+    user.passwordResetToken !== token ||
+    user.passwordResetExpires < Date.now()
+  ) {
+    throw new CustomError.BadRequestError("Password reset failed");
+  }
+  user.password = newPassword;
+  user.passwordResetToken = "";
+  user.passwordResetExpires = null;
+
+  await user.save();
+  res.status(StatusCodes.OK).json({ msg: "Password reset" });
 };
 
 const logout = async (req, res) => {
