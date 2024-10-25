@@ -12,11 +12,13 @@ const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 //ROUTERS
 const authRouter = require("./routes/authRoutes");
+const programRouter = require("./routes/programRoutes");
 //APP
 app.use(express.json());
 app.use(cookieParser(process.env.JWT_SECRET));
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/program", programRouter);
 
 app.use(notFound);
 app.use(errorHandler);
